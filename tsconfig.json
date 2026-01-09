@@ -7,9 +7,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "jsx": "react-jsx"
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["server/**/*", "src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["server/**/*"],
+  "exclude": ["node_modules", "dist", "src"]
 }
