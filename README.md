@@ -7,10 +7,13 @@ AI-powered query agent with multi-database and multi-LLM support
 ## 주요 기능
 
 - **자연어 → SQL 변환**: 자연어 질문을 SQL 쿼리로 자동 생성
+- **스키마 캐싱**: DB 스키마를 캐시하여 빠른 응답, 변경 시 자동 갱신
+- **SP 지원**: Stored Procedure 파악 및 호출 쿼리 생성
+- **테이블 관계 인식**: FK 기반 JOIN 쿼리 자동 생성
+- **대화 컨텍스트 유지**: 세션별 대화 히스토리 관리
+- **안전한 실행**: 위험한 쿼리 자동 필터링
 - **Multi-Database**: MSSQL, PostgreSQL, MySQL 지원 (예정)
 - **Multi-LLM**: Claude, GPT, Gemini 선택 가능 (예정)
-- **스키마 인식**: DB 스키마 기반 최적화된 쿼리 생성
-- **안전한 실행**: 위험한 쿼리 자동 필터링
 
 ## 기술 스택
 
@@ -59,29 +62,48 @@ npm run dev:server
 npm run dev:client
 ```
 
+### 4. 접속
+
+- 프론트엔드: http://localhost:5173
+- 백엔드 API: http://localhost:3001
+
 ## 프로젝트 구조
 
 ```
 query-agent/
-├── server/               # Express 백엔드
-│   ├── index.ts          # 서버 진입점
+├── server/                  # Express 백엔드
+│   ├── index.ts             # 서버 진입점
 │   ├── routes/
-│   │   └── chat.ts       # AI 채팅 API
+│   │   ├── chat.ts          # AI 채팅 API
+│   │   └── db.ts            # DB 조회 API
 │   └── db/
-│       └── mssql.ts      # MSSQL 연결 모듈
-├── src/                  # React 프론트엔드 (예정)
-├── package.json
-├── tsconfig.json
-└── .env.example
+│       ├── mssql.ts         # MSSQL 연결/쿼리 실행
+│       └── schema-cache.ts  # 스키마 캐싱/변경 감지
+├── src/                     # React 프론트엔드
+│   ├── App.tsx              # 메인 채팅 UI
+│   ├── main.tsx             # React 진입점
+│   └── index.css            # Tailwind 스타일
+├── docs/                    # 상세 문서
+├── vite.config.ts           # Vite 설정
+├── tailwind.config.js       # Tailwind 설정
+└── .env.example             # 환경변수 예시
 ```
 
-## API 명세
+## 스키마 캐싱 동작 방식
 
-[API.md](./API.md) 참조
+```
+1. 첫 요청 시 DB에서 스키마 전체 로드 (테이블, SP, View)
+2. 메모리에 캐시 저장
+3. 이후 요청은 캐시 사용 (DB 조회 없음)
+4. 매 요청마다 checksum 비교로 변경 감지
+5. 변경 감지 시 자동으로 캐시 갱신
+```
 
-## 로드맵
+## 문서
 
-[TASK.md](./TASK.md) 참조
+- [상세 문서](./docs/README.md) - 아키텍처, 백엔드, 프론트엔드 가이드
+- [API 명세](./API.md) - REST API 상세 명세
+- [로드맵](./TASK.md) - 개발 진행 상황
 
 ## 라이센스
 
