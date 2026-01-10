@@ -1,5 +1,4 @@
 import { Router } from "express";
-import Anthropic from "@anthropic-ai/sdk";
 import {
   getSchemaForAI,
   loadSchemaCache,
@@ -9,15 +8,9 @@ import {
   hasSchemaChanged,
 } from "../db/schema-cache.js";
 import { executeQuery } from "../db/mssql.js";
+import { getProvider, getAvailableProviders, type ProviderKey, type LLMMessage } from "../llm/providers.js";
 
 const router = Router();
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-// AI 제공자 설정 (나중에 확장)
-type AIProvider = "claude" | "gpt" | "gemini";
 
 const SYSTEM_PROMPT = `You are a database assistant. You help users query and understand databases.
 
@@ -61,10 +54,18 @@ router.post("/", async (req, res) => {
   try {
     const {
       message,
-      provider = "claude",
+      model = "claude-sonnet",
       dbType = "mssql",
       sessionId = "default",
     } = req.body;
+
+    // 프로바이더 가져오기
+    const providerKey = model as ProviderKey;
+    const llmProvider = getProvider(providerKey);
+
+    if (!llmProvider.isConfigured()) {
+      throw new Error(`${llmProvider.name} API key not configured`);
+    }
 
     // 스키마 변경 확인 및 캐시 로드
     const schemaChanged = await hasSchemaChanged();
@@ -98,24 +99,16 @@ router.post("/", async (req, res) => {
     // 히스토리에 사용자 메시지 추가
     history.push({ role: "user", content: userContent });
 
-    // Claude API 호출 (히스토리 포함)
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      messages: history.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+    // LLM API 호출 (프로바이더 사용)
+    const llmMessages: LLMMessage[] = history.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
-    const content = response.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type");
-    }
+    const llmResponse = await llmProvider.chat(llmMessages, SYSTEM_PROMPT);
 
     // 히스토리에 AI 응답 추가
-    history.push({ role: "assistant", content: content.text });
+    history.push({ role: "assistant", content: llmResponse.content });
 
     // 히스토리가 너무 길면 오래된 것 제거 (최근 20개만 유지)
     if (history.length > 20) {
@@ -128,12 +121,12 @@ router.post("/", async (req, res) => {
     // JSON 파싱
     let parsed;
     try {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      const jsonMatch = llmResponse.content.match(/\{[\s\S]*\}/);
       parsed = jsonMatch
         ? JSON.parse(jsonMatch[0])
-        : { message: content.text, sql: null, action: "none" };
+        : { message: llmResponse.content, sql: null, action: "none" };
     } catch {
-      parsed = { message: content.text, sql: null, action: "none" };
+      parsed = { message: llmResponse.content, sql: null, action: "none" };
     }
 
     // SQL 실행이 필요한 경우
@@ -153,7 +146,8 @@ router.post("/", async (req, res) => {
       sql: parsed.sql,
       action: parsed.action,
       result: queryResult,
-      provider,
+      provider: llmResponse.provider,
+      model: llmResponse.model,
       sessionId,
       schemaRefreshed: schemaChanged,
     });
@@ -199,6 +193,12 @@ router.get("/sp/:name", async (req, res) => {
 router.delete("/history/:sessionId", (req, res) => {
   conversations.delete(req.params.sessionId);
   res.json({ success: true, message: "Conversation history cleared" });
+});
+
+// 사용 가능한 AI 프로바이더 목록
+router.get("/providers", (req, res) => {
+  const providers = getAvailableProviders();
+  res.json({ providers });
 });
 
 export { router as chatRouter };

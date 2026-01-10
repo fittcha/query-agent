@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "query-agent": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/query-agent/mcp-server/index.ts"],
+      "env": {
+        "MSSQL_HOST": "localhost",
+        "MSSQL_PORT": "1433",
+        "MSSQL_USER": "sa",
+        "MSSQL_PASSWORD": "your-password",
+        "MSSQL_DATABASE": "your-database",
+        "MSSQL_ENCRYPT": "false"
+      }
+    }
+  }
+}
