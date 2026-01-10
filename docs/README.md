@@ -11,6 +11,7 @@
 5. [개발 환경 설정](./05-setup.md) - 로컬 개발 환경 구축
 6. [API 레퍼런스](./06-api-reference.md) - API 상세 명세
 7. [스키마 캐싱](./07-schema-cache.md) - 스키마 캐싱 및 변경 감지
+8. [MCP 서버](./08-mcp-server.md) - Claude Desktop 연동 (API 키 불필요)
 
 ## 빠른 시작
 
@@ -37,3 +38,5 @@ npm run dev
 | SP 지원 | Stored Procedure 파악 및 호출 | [스키마 캐싱](./07-schema-cache.md) |
 | 테이블 관계 | FK 기반 관계 분석 | [스키마 캐싱](./07-schema-cache.md) |
 | 대화 컨텍스트 | 세션별 히스토리 유지 | [백엔드](./03-backend.md) |
+| MCP 서버 | Claude Desktop에서 API 키 없이 사용 | [MCP 서버](./08-mcp-server.md) |
+| Multi-LLM | Claude, Groq, Gemini 지원 | [백엔드](./03-backend.md) |
